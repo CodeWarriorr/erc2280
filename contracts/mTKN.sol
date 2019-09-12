@@ -1,430 +1,230 @@
 pragma solidity >=0.5.0 <0.6.0;
 
-import "@openzeppelin/contracts/math/SafeMath.sol";
-import "./mTKNDomain.sol";
+/// @title ERC- mTKN - ERC-20 native meta transactions
+/// @dev See
+contract mTKN {
 
-// The ERC-20 section was implemented by OpenZeppelin
+    /// @notice Return the current exepected nonce for given `account`.
+    ///
+    /// @param account Will retrieve the nonce of this address
+    ///
+    /// @return The current nonce for `account`
+    ///
+    function nonceOf(address account) public view returns (uint256);
 
-/**
- * @dev Implementation of the {IERC20} interface.
- *
- * This implementation is agnostic to the way tokens are created. This means
- * that a supply mechanism has to be added in a derived contract using {_mint}.
- * For a generic mechanism see {ERC20Mintable}.
- *
- * TIP: For a detailed writeup see our guide
- * https://forum.zeppelin.solutions/t/how-to-implement-erc20-supply-mechanisms/226[How
- * to implement supply mechanisms].
- *
- * We have followed general OpenZeppelin guidelines: functions revert instead
- * of returning `false` on failure. This behavior is nonetheless conventional
- * and does not conflict with the expectations of ERC20 applications.
- *
- * Additionally, an {Approval} event is emitted on calls to {transferFrom}.
- * This allows applications to reconstruct the allowance for all accounts just
- * by listening to said events. Other implementations of the EIP may not emit
- * these events, as it isn't required by the specification.
- *
- * Finally, the non-standard {decreaseAllowance} and {increaseAllowance}
- * functions have been added to mitigate the well-known issues around setting
- * allowances. See {IERC20-approve}.
- */
-contract mTKN is mTKNDomain {
-    using SafeMath for uint256;
+    /// @notice Verifies that a transfer to `recipient` from `signer` of `amount` tokens
+    ///         is possible with the provided signature and with current contract state.
+    ///
+    /// @dev The function MUST throw if the `mTransfer` payload signature is
+    ///      invalid (resulting signer is different than provided `signer`).
+    ///
+    /// @dev The function MUST throw if real `nonce` is not high enough to
+    ///      match the `nonce` provided in the `mTransfer` payload.
+    ///
+    /// @dev The function MUST throw if provided `gas` is not high enough
+    ///      to match the `gasLimit` provided in the `mTransfer` payload.
+    ///      This should be checked as soon as the function starts. (`gasleft() >= gasLimit`)
+    ///
+    /// @dev The function MUST throw if provided `gasPrice` is not high enough
+    ///      to match the `gasLimit` provided in the `mTransfer` payload. (`tx.gasprice >= gasPrice`)
+    ///
+    /// @dev The function MUST throw if provided `relayer` is not `address(0)` AND `relayer`
+    ///      is different than `msg.sender`.
+    ///
+    /// @dev The function SHOULD throw if the `signer`’s account balance does not have enough
+    ///      tokens to spend on transfer and on reward (`balanceOf(signer) >= amount + reward`).
+    ///
+    /// @param recipient Target address of the transfer
+    /// @param amount Amount of token to transfer from `signer`'s balance to `recipient`'s balance
+    /// @param actors Array of `address`es that contains `signer` as `actors[0]` and `relayer` as `actors[1]` in this
+    ///               precise order.
+    /// @param txparams Array of `uint256` that MUST contain `nonce` as `txparams[0]`, `gasLimit` as `txparams[1]`,
+    ///                 `gasPrice` as `txparams[2]` and `reward` as `txparams[3]` in this precise order.
+    ///
+    function verifyTransfer(
+        address recipient, uint256 amount,
+        address[2] memory actors, uint256[4] memory txparams, bytes memory signature
+    ) public view returns (bool);
 
-    mapping (address => uint256) private _balances;
-    mapping (address => uint256) public nonces;
-
-    string private _name;
-    string private _symbol;
-    uint8 private _decimals;
-
-    mapping (address => mapping (address => uint256)) private _allowances;
-
-    uint256 private _totalSupply;
-
-    /**
-     * @dev Sets the values for `name`, `symbol`, and `decimals`. All three of
-     * these values are immutable: they can only be set once during
-     * construction.
-     */
-    constructor (string memory name, string memory symbol, uint8 decimals) mTKNDomain(name) public {
-        _name = name;
-        _symbol = symbol;
-        _decimals = decimals;
-    }
-
-    /**
-     * @dev Returns the name of the token.
-     */
-    function name() public view returns (string memory) {
-        return _name;
-    }
-
-    /**
-     * @dev Returns the symbol of the token, usually a shorter version of the
-     * name.
-     */
-    function symbol() public view returns (string memory) {
-        return _symbol;
-    }
-
-    /**
-     * @dev Returns the number of decimals used to get its user representation.
-     * For example, if `decimals` equals `2`, a balance of `505` tokens should
-     * be displayed to a user as `5,05` (`505 / 10 ** 2`).
-     *
-     * Tokens usually opt for a value of 18, imitating the relationship between
-     * Ether and Wei.
-     *
-     * NOTE: This information is only used for _display_ purposes: it in
-     * no way affects any of the arithmetic of the contract, including
-     * {IERC20-balanceOf} and {IERC20-transfer}.
-     */
-    function decimals() public view returns (uint8) {
-        return _decimals;
-    }
-
-    /**
-    * @dev Emitted when `value` tokens are moved from one account (`from`) to
-    * another (`to`).
-    *
-    * Note that `value` may be zero.
-    */
-    event Transfer(address indexed from, address indexed to, uint256 value);
-
-    /**
-     * @dev Emitted when the allowance of a `spender` for an `owner` is set by
-     * a call to {approve}. `value` is the new allowance.
-     */
-    event Approval(address indexed owner, address indexed spender, uint256 value);
-
-    /**
-     * @dev See {IERC20-totalSupply}.
-     */
-    function totalSupply() public view returns (uint256) {
-        return _totalSupply;
-    }
-
-    /**
-     * @dev See {IERC20-balanceOf}.
-     */
-    function balanceOf(address account) public view returns (uint256) {
-        return _balances[account];
-    }
-
-    /**
-     * @dev See {IERC20-transfer}.
-     *
-     * Requirements:
-     *
-     * - `recipient` cannot be the zero address.
-     * - the caller must have a balance of at least `amount`.
-     */
-    function transfer(address recipient, uint256 amount) public returns (bool) {
-        _transfer(msg.sender, recipient, amount);
-        return true;
-    }
-
-    /**
-     * @dev See {IERC20-allowance}.
-     */
-    function allowance(address owner, address spender) public view returns (uint256) {
-        return _allowances[owner][spender];
-    }
-
-    /**
-     * @dev See {IERC20-approve}.
-     *
-     * Requirements:
-     *
-     * - `spender` cannot be the zero address.
-     */
-    function approve(address spender, uint256 amount) public returns (bool) {
-        _approve(msg.sender, spender, amount);
-        return true;
-    }
-
-    /**
-     * @dev See {IERC20-transferFrom}.
-     *
-     * Emits an {Approval} event indicating the updated allowance. This is not
-     * required by the EIP. See the note at the beginning of {ERC20};
-     *
-     * Requirements:
-     * - `sender` and `recipient` cannot be the zero address.
-     * - `sender` must have a balance of at least `amount`.
-     * - the caller must have allowance for `sender`'s tokens of at least
-     * `amount`.
-     */
-    function transferFrom(address sender, address recipient, uint256 amount) public returns (bool) {
-        _transfer(sender, recipient, amount);
-        _approve(sender, msg.sender, _allowances[sender][msg.sender].sub(amount));
-        return true;
-    }
-
-    /**
-     * @dev Atomically increases the allowance granted to `spender` by the caller.
-     *
-     * This is an alternative to {approve} that can be used as a mitigation for
-     * problems described in {IERC20-approve}.
-     *
-     * Emits an {Approval} event indicating the updated allowance.
-     *
-     * Requirements:
-     *
-     * - `spender` cannot be the zero address.
-     */
-    function increaseAllowance(address spender, uint256 addedValue) public returns (bool) {
-        _approve(msg.sender, spender, _allowances[msg.sender][spender].add(addedValue));
-        return true;
-    }
-
-    /**
-     * @dev Atomically decreases the allowance granted to `spender` by the caller.
-     *
-     * This is an alternative to {approve} that can be used as a mitigation for
-     * problems described in {IERC20-approve}.
-     *
-     * Emits an {Approval} event indicating the updated allowance.
-     *
-     * Requirements:
-     *
-     * - `spender` cannot be the zero address.
-     * - `spender` must have allowance for the caller of at least
-     * `subtractedValue`.
-     */
-    function decreaseAllowance(address spender, uint256 subtractedValue) public returns (bool) {
-        _approve(msg.sender, spender, _allowances[msg.sender][spender].sub(subtractedValue));
-        return true;
-    }
-
-    /**
-     * @dev Moves tokens `amount` from `sender` to `recipient`.
-     *
-     * This is internal function is equivalent to {transfer}, and can be used to
-     * e.g. implement automatic token fees, slashing mechanisms, etc.
-     *
-     * Emits a {Transfer} event.
-     *
-     * Requirements:
-     *
-     * - `sender` cannot be the zero address.
-     * - `recipient` cannot be the zero address.
-     * - `sender` must have a balance of at least `amount`.
-     */
-    function _transfer(address sender, address recipient, uint256 amount) internal {
-        require(sender != address(0), "ERC20: transfer from the zero address");
-        require(recipient != address(0), "ERC20: transfer to the zero address");
-
-        _balances[sender] = _balances[sender].sub(amount);
-        _balances[recipient] = _balances[recipient].add(amount);
-        emit Transfer(sender, recipient, amount);
-    }
-
-    /** @dev Creates `amount` tokens and assigns them to `account`, increasing
-     * the total supply.
-     *
-     * Emits a {Transfer} event with `from` set to the zero address.
-     *
-     * Requirements
-     *
-     * - `to` cannot be the zero address.
-     */
-    function _mint(address account, uint256 amount) internal {
-        require(account != address(0), "ERC20: mint to the zero address");
-
-        _totalSupply = _totalSupply.add(amount);
-        _balances[account] = _balances[account].add(amount);
-        emit Transfer(address(0), account, amount);
-    }
-
-    /**
-     * @dev Destroys `amount` tokens from `account`, reducing the
-     * total supply.
-     *
-     * Emits a {Transfer} event with `to` set to the zero address.
-     *
-     * Requirements
-     *
-     * - `account` cannot be the zero address.
-     * - `account` must have at least `amount` tokens.
-     */
-    function _burn(address account, uint256 amount) internal {
-        require(account != address(0), "ERC20: burn from the zero address");
-
-        _balances[account] = _balances[account].sub(amount);
-        _totalSupply = _totalSupply.sub(amount);
-        emit Transfer(account, address(0), amount);
-    }
-
-    /**
-     * @dev Sets `amount` as the allowance of `spender` over the `owner`s tokens.
-     *
-     * This is internal function is equivalent to `approve`, and can be used to
-     * e.g. set automatic allowances for certain subsystems, etc.
-     *
-     * Emits an {Approval} event.
-     *
-     * Requirements:
-     *
-     * - `owner` cannot be the zero address.
-     * - `spender` cannot be the zero address.
-     */
-    function _approve(address owner, address spender, uint256 amount) internal {
-        require(owner != address(0), "ERC20: approve from the zero address");
-        require(spender != address(0), "ERC20: approve to the zero address");
-
-        _allowances[owner][spender] = amount;
-        emit Approval(owner, spender, amount);
-    }
-
-    /**
-     * @dev Destroys `amount` tokens from `account`.`amount` is then deducted
-     * from the caller's allowance.
-     *
-     * See {_burn} and {_approve}.
-     */
-    function _burnFrom(address account, uint256 amount) internal {
-        _burn(account, amount);
-        _approve(account, msg.sender, _allowances[account][msg.sender].sub(amount));
-    }
-
-    modifier gasBarrier(uint256 gas_left, uint256 expected_gas, uint256 expected_gasPrice) {
-        require(expected_gas <= gas_left, "Insufficient gas provided by the relayer");
-        require(expected_gasPrice <= tx.gasprice, "Insufficient gasPrice provided by the relayer");
-        _;
-    }
-
-    modifier nonceBarrier(address signer, uint256 nonce) {
-        require(nonces[signer] == nonce, "Invalid nonce");
-        _;
-    }
-
-    function _signedTransfer(mTransfer memory mtransfer, Signature memory signature, uint256 gas_left)
-    nonceBarrier(mtransfer.signer, mtransfer.nonce)
-    gasBarrier(gas_left, mtransfer.gasLimit, mtransfer.gasPrice) internal {
-        require(verify(mtransfer, signature), "Invalid signer");
-
-        _transfer(mtransfer.signer, mtransfer.recipient, mtransfer.amount);
-        _transfer(mtransfer.signer, tx.origin, mtransfer.reward);
-    }
-
+    /// @notice Transfers `amount` amount of tokens to address `recipient`, and fires the Transfer event.
+    ///
+    /// @dev The function MUST throw if the `mTransfer` payload signature is
+    ///      invalid (resulting signer is different than provided `signer`).
+    ///
+    /// @dev The function MUST throw if real `nonce` is not high enough to
+    ///      match the `nonce` provided in the `mTransfer` payload.
+    ///
+    /// @dev The function MUST throw if provided `gas` is not high enough
+    ///      to match the `gasLimit` provided in the `mTransfer` payload.
+    ///      This should be checked as soon as the function starts. (`gasleft() >= gasLimit`)
+    ///
+    /// @dev The function MUST throw if provided `gasPrice` is not high enough
+    ///      to match the `gasLimit` provided in the `mTransfer` payload. (`tx.gasprice >= gasPrice`)
+    ///
+    /// @dev The function MUST throw if provided `relayer` is not `address(0)` AND `relayer`
+    ///      is different than `msg.sender`.
+    ///
+    /// @dev The function SHOULD throw if the `signer`’s account balance does not have enough
+    ///      tokens to spend on transfer and on reward (`balanceOf(signer) >= amount + reward`).
+    ///
+    /// @param recipient Target address of the transfer
+    /// @param amount Amount of token to transfer from `signer`'s balance to `recipient`'s balance
+    /// @param actors Array of `address`es that contains `signer` as `actors[0]` and `relayer` as `actors[1]` in this
+    ///               precise order.
+    /// @param txparams Array of `uint256` that MUST contain `nonce` as `txparams[0]`, `gasLimit` as `txparams[1]`,
+    ///                 `gasPrice` as `txparams[2]` and `reward` as `txparams[3]` in this precise order.
+    ///
     function signedTransfer(
-        address signer,
-        address recipient,
-        uint256 amount,
-        uint256 nonce,
-        uint256 gasLimit,
-        uint256 gasPrice,
-        uint256 reward,
+        address recipient, uint256 amount,
+        address[2] memory actors, uint256[4] memory txparams, bytes memory signature
+    ) public returns (bool);
 
-        uint8 v,
-        bytes32 r,
-        bytes32 s
-    ) public returns (bool) {
+    /// @notice Verifies that an approval for `spender` of `amount` tokens on
+    ///         `signer`'s balance is possible with the provided signature and with current contract state.
+    ///
+    /// @dev The function MUST throw if the `mTransfer` payload signature is
+    ///      invalid (resulting signer is different than provided `signer`).
+    ///
+    /// @dev The function MUST throw if real `nonce` is not high enough to
+    ///      match the `nonce` provided in the `mTransfer` payload.
+    ///
+    /// @dev The function MUST throw if provided `gas` is not high enough
+    ///      to match the `gasLimit` provided in the `mTransfer` payload.
+    ///      This should be checked as soon as the function starts. (`gasleft() >= gasLimit`)
+    ///
+    /// @dev The function MUST throw if provided `gasPrice` is not high enough
+    ///      to match the `gasLimit` provided in the `mTransfer` payload. (`tx.gasprice >= gasPrice`)
+    ///
+    /// @dev The function MUST throw if provided `relayer` is not `address(0)` AND `relayer`
+    ///      is different than `msg.sender`.
+    ///
+    /// @dev The function SHOULD throw if the `signer`’s account balance does not have enough tokens
+    ///      to spend on allowance and on reward (`balanceOf(signer) >= amount + reward`).
+    ///
+    /// @param spender Target address of the approval
+    /// @param amount Amount of token to approve from `signer`'s balance to `recipient`'s account
+    /// @param actors Array of `address`es that contains `signer` as `actors[0]` and `relayer` as `actors[1]` in this
+    ///               precise order.
+    /// @param txparams Array of `uint256` that MUST contain `nonce` as `txparams[0]`, `gasLimit` as `txparams[1]`,
+    ///                 `gasPrice` as `txparams[2]` and `reward` as `txparams[3]` in this precise order.
+    ///
+    function verifyApprove(
+        address spender, uint256 amount,
+        address[2] memory actors, uint256[4] memory txparams, bytes memory signature
+    ) public view returns (bool);
 
-        uint256 gas_left_approximation = gasleft();
-
-        _signedTransfer(
-
-            mTransfer({signer: signer, recipient: recipient, amount: amount,
-            nonce: nonce, gasLimit: gasLimit, gasPrice: gasPrice, reward: reward}),
-
-            Signature({v: v, r: r, s: s}),
-
-            gas_left_approximation
-
-        );
-
-        return true;
-
-    }
-
-    function _signedApprove(mApprove memory mapprove, Signature memory signature, uint256 gas_left)
-    nonceBarrier(mapprove.signer, mapprove.nonce)
-    gasBarrier(gas_left, mapprove.gasLimit, mapprove.gasPrice)
-    internal {
-        require(verify(mapprove, signature), "Invalid signer");
-
-        _approve(mapprove.signer, mapprove.spender, mapprove.amount);
-        _transfer(mapprove.signer, tx.origin, mapprove.reward);
-    }
-
+    /// @notice Approves `amount` amount of tokens from `signer`'s balance to address `spender`, and
+    ///         MUST fire the Approve event.
+    ///
+    /// @dev The function MUST throw if the `mTransfer` payload signature is
+    ///      invalid (resulting signer is different than provided `signer`).
+    ///
+    /// @dev The function MUST throw if real `nonce` is not high enough to
+    ///      match the `nonce` provided in the `mTransfer` payload.
+    ///
+    /// @dev The function MUST throw if provided `gas` is not high enough
+    ///      to match the `gasLimit` provided in the `mTransfer` payload.
+    ///      This should be checked as soon as the function starts. (`gasleft() >= gasLimit`)
+    ///
+    /// @dev The function MUST throw if provided `gasPrice` is not high enough
+    ///      to match the `gasLimit` provided in the `mTransfer` payload. (`tx.gasprice >= gasPrice`)
+    ///
+    /// @dev The function MUST throw if provided `relayer` is not `address(0)` AND `relayer`
+    ///      is different than `msg.sender`.
+    ///
+    /// @dev The function SHOULD throw if the `signer`’s account balance does not have enough tokens
+    ///      to spend on allowance and on reward (`balanceOf(signer) >= amount + reward`).
+    ///
+    /// @param spender Target address of the approval
+    /// @param amount Amount of token to approve from `signer`'s balance to `recipient`'s account
+    /// @param actors Array of `address`es that contains `signer` as `actors[0]` and `relayer` as `actors[1]` in this
+    ///               precise order.
+    /// @param txparams Array of `uint256` that MUST contain `nonce` as `txparams[0]`, `gasLimit` as `txparams[1]`,
+    ///                 `gasPrice` as `txparams[2]` and `reward` as `txparams[3]` in this precise order.
+    ///
     function signedApprove(
-        address signer,
-        address spender,
-        uint256 amount,
-        uint256 nonce,
-        uint256 gasLimit,
-        uint256 gasPrice,
-        uint256 reward,
+        address spender, uint256 amount,
+        address[2] memory actors, uint256[4] memory txparams, bytes memory signature
+    ) public returns (bool);
 
-        uint8 v,
-        bytes32 r,
-        bytes32 s
-    ) public returns (bool) {
+    /// @notice Verifies that a transfer from `sender` to `recipient` of `amount` tokens and that
+    ///         `signer` has at least `amount` allowance from `sender` is possible with the
+    ///         provided signature and with current contract state.
+    ///
+    /// @dev The function MUST throw if the `mTransfer` payload signature is
+    ///      invalid (resulting signer is different than provided `signer`).
+    ///
+    /// @dev The function MUST throw if real `nonce` is not high enough to
+    ///      match the `nonce` provided in the `mTransfer` payload.
+    ///
+    /// @dev The function MUST throw if provided `gas` is not high enough
+    ///      to match the `gasLimit` provided in the `mTransfer` payload.
+    ///      This should be checked as soon as the function starts. (`gasleft() >= gasLimit`)
+    ///
+    /// @dev The function MUST throw if provided `gasPrice` is not high enough
+    ///      to match the `gasLimit` provided in the `mTransfer` payload. (`tx.gasprice >= gasPrice`)
+    ///
+    /// @dev The function MUST throw if provided `relayer` is not `address(0)` AND `relayer`
+    ///      is different than `msg.sender`.
+    ///
+    /// @dev The function SHOULD throw if the `signer`’s account balance does not have enough tokens to spend
+    ///      on reward (`balanceOf(signer) >= reward`).
+    ///
+    /// @dev The function SHOULD throw if the `signer`’s account allowance from `sender` is at least `amount`
+    ///      (`allowance(sender, signer) >= amount`).
+    ///
+    /// @param sender Account that is send tokens
+    /// @param recipient Account that is receiving the tokens
+    /// @param amount Amount of token to transfer from `sender` to `recipient`. `signer` should have at least
+    ///               least `amount` allowance from `sender`.
+    /// @param actors Array of `address`es that contains `signer` as `actors[0]` and `relayer` as `actors[1]` in this
+    ///               precise order.
+    /// @param txparams Array of `uint256` that MUST contain `nonce` as `txparams[0]`, `gasLimit` as `txparams[1]`,
+    ///                 `gasPrice` as `txparams[2]` and `reward` as `txparams[3]` in this precise order.
+    ///
+    function verifyTransferFrom(
+        address sender, address recipient, uint256 amount,
+        address[2] memory actors, uint256[4] memory txparams, bytes memory signature
+    ) public view returns (bool);
 
-        uint256 gas_left_approximation = gasleft();
-
-        _signedApprove(
-
-            mApprove({signer: signer, spender: spender, amount: amount,
-            nonce: nonce, gasLimit: gasLimit, gasPrice: gasPrice, reward: reward}),
-
-            Signature({v: v, r: r, s: s}),
-
-            gas_left_approximation
-
-        );
-
-        return true;
-    }
-
-    function _signedTransferFrom(mTransferFrom memory mtransfer_from, Signature memory signature, uint256 gas_left)
-    nonceBarrier(mtransfer_from.signer, mtransfer_from.nonce)
-    gasBarrier(gas_left, mtransfer_from.gasLimit, mtransfer_from.gasPrice)
-    internal {
-        require(verify(mtransfer_from, signature), "Invalid signer");
-
-        _transfer(mtransfer_from.sender, mtransfer_from.recipient, mtransfer_from.amount);
-        _approve(mtransfer_from.sender, mtransfer_from.signer, _allowances[mtransfer_from.sender][mtransfer_from.signer].sub(mtransfer_from.amount));
-
-        _transfer(mtransfer_from.signer, tx.origin, mtransfer_from.reward);
-    }
-
+    /// @notice Triggers transfer from `sender` to `recipient` of `amount` tokens. `signer`
+    ///         MUST have at least `amount` allowance from `sender`.
+    ///         It MUST trigger a Transfer event.
+    ///
+    /// @dev The function MUST throw if the `mTransfer` payload signature is
+    ///      invalid (resulting signer is different than provided `signer`).
+    ///
+    /// @dev The function MUST throw if real `nonce` is not high enough to
+    ///      match the `nonce` provided in the `mTransfer` payload.
+    ///
+    /// @dev The function MUST throw if provided `gas` is not high enough
+    ///      to match the `gasLimit` provided in the `mTransfer` payload.
+    ///      This should be checked as soon as the function starts. (`gasleft() >= gasLimit`)
+    ///
+    /// @dev The function MUST throw if provided `gasPrice` is not high enough
+    ///      to match the `gasLimit` provided in the `mTransfer` payload. (`tx.gasprice >= gasPrice`)
+    ///
+    /// @dev The function MUST throw if provided `relayer` is not `address(0)` AND `relayer`
+    ///      is different than `msg.sender`.
+    ///
+    /// @dev The function SHOULD throw if the `signer`’s account balance does not have enough tokens to spend
+    ///      on reward (`balanceOf(signer) >= reward`).
+    ///
+    /// @dev The function SHOULD throw if the `signer`’s account allowance from `sender` is at least `amount`
+    ///      (`allowance(sender, signer) >= amount`).
+    ///
+    /// @param sender Account that is send tokens
+    /// @param recipient Account that is receiving the tokens
+    /// @param amount Amount of token to transfer from `sender` to `recipient`. `signer` should have at least
+    ///               least `amount` allowance from `sender`.
+    /// @param actors Array of `address`es that contains `signer` as `actors[0]` and `relayer` as `actors[1]` in this
+    ///               precise order.
+    /// @param txparams Array of `uint256` that MUST contain `nonce` as `txparams[0]`, `gasLimit` as `txparams[1]`,
+    ///                 `gasPrice` as `txparams[2]` and `reward` as `txparams[3]` in this precise order.
+    ///
     function signedTransferFrom(
-        address signer,
-        address sender,
-        address recipient,
-        uint256 amount,
-        uint256 nonce,
-        uint256 gasLimit,
-        uint256 gasPrice,
-        uint256 reward,
+        address sender, address recipient, uint256 amount,
+        address[2] memory actors, uint256[4] memory txparams, bytes memory signature
+    ) public returns (bool);
 
-        uint8 v,
-        bytes32 r,
-        bytes32 s
-    ) public returns (bool) {
-
-        uint256 gas_left_approximation = gasleft();
-
-        _signedTransferFrom(
-
-            mTransferFrom({signer: signer, sender: sender, recipient: recipient,
-            amount: amount, nonce: nonce, gasLimit: gasLimit, gasPrice: gasPrice, reward: reward}),
-
-            Signature({v: v, r: r, s: s}),
-
-            gas_left_approximation
-
-        );
-
-        return true;
-    }
-
-    function test__mint(address owner, uint256 amount) public {
-        _balances[owner] = _balances[owner].add(amount);
-    }
 }

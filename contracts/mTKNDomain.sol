@@ -15,51 +15,68 @@ contract mTKNDomain {
         address verifyingContract;
     }
 
-    struct mTransfer {
-        address signer;
-        address recipient;
-        uint256 amount;
+    struct mTxParams {
         uint256 nonce;
         uint256 gasLimit;
         uint256 gasPrice;
         uint256 reward;
+    }
+
+    struct mActors {
+        address signer;
+        address relayer;
+    }
+
+    struct mTransfer {
+        address recipient;
+        uint256 amount;
+
+        mActors actors;
+
+        mTxParams txparams;
     }
 
     struct mApprove {
-        address signer;
         address spender;
         uint256 amount;
-        uint256 nonce;
-        uint256 gasLimit;
-        uint256 gasPrice;
-        uint256 reward;
+
+        mActors actors;
+
+        mTxParams txparams;
     }
 
     struct mTransferFrom {
-        address signer;
         address sender;
         address recipient;
         uint256 amount;
-        uint256 nonce;
-        uint256 gasLimit;
-        uint256 gasPrice;
-        uint256 reward;
+
+        mActors actors;
+
+        mTxParams txparams;
     }
+
+    bytes32 constant MACTORS_TYPEHASH = keccak256(
+        "mActors(address signer,address relayer)"
+    );
+
+    bytes32 constant MTXPARAMS_TYPEHASH = keccak256(
+        "mTxParams(uint256 nonce,uint256 gasLimit,uint256 gasPrice,uint256 reward)"
+    );
 
     bytes32 constant EIP712DOMAIN_TYPEHASH = keccak256(
         "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
     );
 
     bytes32 constant MTRANSFER_TYPEHASH = keccak256(
-        "mTransfer(address signer,address recipient,uint256 amount,uint256 nonce,uint256 gasLimit,uint256 gasPrice,uint256 reward)"
+        "mTransfer(address recipient,uint256 amount,mActors actors,mTxParams txparams)mActors(address signer,address relayer)mTxParams(uint256 nonce,uint256 gasLimit,uint256 gasPrice,uint256 reward)"
     );
 
     bytes32 constant MAPPROVE_TYPEHASH = keccak256(
-        "mApprove(address signer,address spender,uint256 amount,uint256 nonce,uint256 gasLimit,uint256 gasPrice,uint256 reward)"
+        "mApprove(address spender,uint256 amount,mActors actors,mTxParams txparams)mActors(address signer,address relayer)mTxParams(uint256 nonce,uint256 gasLimit,uint256 gasPrice,uint256 reward)"
     );
 
     bytes32 constant MTRANSFERFROM_TYPEHASH = keccak256(
-        "mTransferFrom(address signer,address sender,address recipient,uint256 amount,uint256 nonce,uint256 gasLimit,uint256 gasPrice,uint256 reward)"
+        "mTransferFrom(address sender,address recipient,uint256 amount,mActors actors,mTxParams txparams)mActors(address signer,address relayer)mTxParams(uint256 nonce,uint256 gasLimit,uint256 gasPrice,uint256 reward)"
     );
 
     bytes32 DOMAIN_SEPARATOR;
@@ -86,40 +103,55 @@ contract mTKNDomain {
     function hash(mTransfer memory transfer) internal pure returns (bytes32) {
         return keccak256(abi.encode(
                 MTRANSFER_TYPEHASH,
-                transfer.signer,
                 transfer.recipient,
                 transfer.amount,
-                transfer.nonce,
-                transfer.gasLimit,
-                transfer.gasPrice,
-                transfer.reward
+
+                hash(transfer.actors),
+
+                hash(transfer.txparams)
             ));
     }
 
     function hash(mApprove memory approve) internal pure returns (bytes32) {
         return keccak256(abi.encode(
                 MAPPROVE_TYPEHASH,
-                approve.signer,
                 approve.spender,
                 approve.amount,
-                approve.nonce,
-                approve.gasLimit,
-                approve.gasPrice,
-                approve.reward
+
+                hash(approve.actors),
+
+                hash(approve.txparams)
+            ));
+    }
+
+    function hash(mActors memory actors) internal pure returns (bytes32) {
+        return keccak256(abi.encode(
+                MACTORS_TYPEHASH,
+                actors.signer,
+                actors.relayer
+            ));
+    }
+
+    function hash(mTxParams memory txparams) internal pure returns (bytes32) {
+        return keccak256(abi.encode(
+                MTXPARAMS_TYPEHASH,
+                txparams.nonce,
+                txparams.gasLimit,
+                txparams.gasPrice,
+                txparams.reward
             ));
     }
 
     function hash(mTransferFrom memory transfer_from) internal pure returns (bytes32) {
         return keccak256(abi.encode(
                 MTRANSFERFROM_TYPEHASH,
-                transfer_from.signer,
                 transfer_from.sender,
                 transfer_from.recipient,
                 transfer_from.amount,
-                transfer_from.nonce,
-                transfer_from.gasLimit,
-                transfer_from.gasPrice,
-                transfer_from.reward
+
+                hash(transfer_from.actors),
+
+                hash(transfer_from.txparams)
             ));
     }
 
@@ -131,7 +163,7 @@ contract mTKNDomain {
                 DOMAIN_SEPARATOR,
                 hash(transfer)
             ));
-        return ecrecover(digest, signature.v, signature.r, signature.s) == transfer.signer;
+        return ecrecover(digest, signature.v, signature.r, signature.s) == transfer.actors.signer;
     }
 
     function verify(mApprove memory approve, Signature memory signature) internal view returns (bool) {
@@ -141,7 +173,7 @@ contract mTKNDomain {
                 DOMAIN_SEPARATOR,
                 hash(approve)
             ));
-        return ecrecover(digest, signature.v, signature.r, signature.s) == approve.signer;
+        return ecrecover(digest, signature.v, signature.r, signature.s) == approve.actors.signer;
     }
 
     function verify(mTransferFrom memory transfer_from, Signature memory signature) internal view returns (bool) {
@@ -151,7 +183,7 @@ contract mTKNDomain {
                 DOMAIN_SEPARATOR,
                 hash(transfer_from)
             ));
-        return ecrecover(digest, signature.v, signature.r, signature.s) == transfer_from.signer;
+        return ecrecover(digest, signature.v, signature.r, signature.s) == transfer_from.actors.signer;
     }
 
 }

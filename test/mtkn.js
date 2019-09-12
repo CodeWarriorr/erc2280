@@ -3,10 +3,6 @@ const ethers = require('ethers');
 
 const mTransferType = [
   {
-    name: 'signer',
-    type: 'address'
-  },
-  {
     name: 'recipient',
     type: 'address'
   },
@@ -14,29 +10,19 @@ const mTransferType = [
     name: 'amount',
     type: 'uint256'
   },
+
   {
-    name: 'nonce',
-    type: 'uint256'
+    name: 'actors',
+    type: 'mActors'
   },
+
   {
-    name: 'gasLimit',
-    type: 'uint256'
-  },
-  {
-    name: 'gasPrice',
-    type: 'uint256'
-  },
-  {
-    name: 'reward',
-    type: 'uint256'
+    name: 'txparams',
+    type: 'mTxParams'
   }
 ];
 
 const mApproveType = [
-  {
-    name: 'signer',
-    type: 'address'
-  },
   {
     name: 'spender',
     type: 'address'
@@ -45,29 +31,19 @@ const mApproveType = [
     name: 'amount',
     type: 'uint256'
   },
+
   {
-    name: 'nonce',
-    type: 'uint256'
+    name: 'actors',
+    type: 'mActors'
   },
+
   {
-    name: 'gasLimit',
-    type: 'uint256'
-  },
-  {
-    name: 'gasPrice',
-    type: 'uint256'
-  },
-  {
-    name: 'reward',
-    type: 'uint256'
+    name: 'txparams',
+    type: 'mTxParams'
   }
 ];
 
 const mTransferFromType = [
-  {
-    name: 'signer',
-    type: 'address'
-  },
   {
     name: 'sender',
     type: 'address'
@@ -80,6 +56,30 @@ const mTransferFromType = [
     name: 'amount',
     type: 'uint256'
   },
+
+  {
+    name: 'actors',
+    type: 'mActors'
+  },
+
+  {
+    name: 'txparams',
+    type: 'mTxParams'
+  }
+];
+
+const mActors = [
+  {
+    name: 'signer',
+    type: 'address'
+  },
+  {
+    name: 'relayer',
+    type: 'address'
+  }
+];
+
+const mTxParams = [
   {
     name: 'nonce',
     type: 'uint256'
@@ -108,7 +108,7 @@ const domain = (address) => ({
 
 class mTKNSigner extends e712.EIP712Signer {
   constructor(address) {
-    super(domain(address), ['mTransfer', mTransferType], ['mApprove', mApproveType], ['mTransferFrom', mTransferFromType]
+    super(domain(address), ['mTransfer', mTransferType], ['mApprove', mApproveType], ['mTransferFrom', mTransferFromType], ['mActors', mActors], ['mTxParams', mTxParams]
     )
   }
 }
@@ -148,6 +148,8 @@ const revert = (snap_id) => {
   })
 };
 
+const ZERO = "0x0000000000000000000000000000000000000000";
+
 contract('mTKN', (accounts) => {
 
   before(async () => {
@@ -161,7 +163,7 @@ contract('mTKN', (accounts) => {
   });
 
   it('mTransfer', async () => {
-    const mTKN = artifacts.require("mTKN");
+    const mTKN = artifacts.require("mTKNExample");
     const mTKN_instance = await mTKN.deployed();
 
     const mTKN_signer = new mTKNSigner(mTKN_instance.address);
@@ -170,13 +172,20 @@ contract('mTKN', (accounts) => {
 
     // Prepare payload data
     const mTransferPayload = {
-      signer: wallet.address,
       recipient: to,
       amount: 1234,
-      nonce: 0,
-      gasLimit: 1000000,
-      gasPrice: 1000000,
-      reward: 100000
+
+      actors: {
+        signer: wallet.address,
+        relayer: ZERO
+      },
+
+      txparams: {
+        nonce: parseInt(await mTKN_instance.nonceOf(wallet.address)),
+        gasLimit: 1000000,
+        gasPrice: 1000000,
+        reward: 100000,
+      }
     };
 
     // Prepare complete EIP712 Payload
@@ -191,20 +200,47 @@ contract('mTKN', (accounts) => {
     console.log('Recipient', (await mTKN_instance.balanceOf(accounts[0])).toString());
     console.log('Relayer', (await mTKN_instance.balanceOf(accounts[1])).toString());
 
-    // Execute Meta Transaction
-    await mTKN_instance.signedTransfer(
-        mTransferPayload.signer,
+    // Execute Constant verifier
+    const res = await mTKN_instance.verifyTransfer(
         mTransferPayload.recipient,
         mTransferPayload.amount,
-        mTransferPayload.nonce,
-        mTransferPayload.gasLimit,
-        mTransferPayload.gasPrice,
-        mTransferPayload.reward,
 
-        sig.v,
-        '0x' + sig.r,
-        '0x' + sig.s
-    , {from: accounts[1]});
+        [
+          mTransferPayload.actors.signer,
+          mTransferPayload.actors.relayer,
+        ],
+
+        [
+          mTransferPayload.txparams.nonce,
+          mTransferPayload.txparams.gasLimit,
+          mTransferPayload.txparams.gasPrice,
+          mTransferPayload.txparams.reward,
+        ],
+
+        sig.hex
+        , {from: accounts[1]});
+
+    expect(res).to.equal(true);
+
+    // Execute Meta Transaction
+    await mTKN_instance.signedTransfer(
+        mTransferPayload.recipient,
+        mTransferPayload.amount,
+
+        [
+          mTransferPayload.actors.signer,
+          mTransferPayload.actors.relayer,
+        ],
+
+        [
+          mTransferPayload.txparams.nonce,
+          mTransferPayload.txparams.gasLimit,
+          mTransferPayload.txparams.gasPrice,
+          mTransferPayload.txparams.reward,
+        ],
+
+        sig.hex
+        , {from: accounts[1]});
 
     console.log('After Meta Tx');
     console.log('Payer & Signer', (await mTKN_instance.balanceOf(wallet.address)).toString());
@@ -214,7 +250,7 @@ contract('mTKN', (accounts) => {
   });
 
   it('mApprove', async () => {
-    const mTKN = artifacts.require("mTKN");
+    const mTKN = artifacts.require("mTKNExample");
     const mTKN_instance = await mTKN.deployed();
 
     const mTKN_signer = new mTKNSigner(mTKN_instance.address);
@@ -223,13 +259,21 @@ contract('mTKN', (accounts) => {
 
     // Prepare payload data
     const mApprovePayload = {
-      signer: wallet.address,
       spender: to,
       amount: 1234,
-      nonce: 0,
-      gasLimit: 1000000,
-      gasPrice: 1000000,
-      reward: 100000
+
+      actors: {
+        signer: wallet.address,
+        relayer: ZERO
+      },
+
+      txparams: {
+        nonce: parseInt(await mTKN_instance.nonceOf(wallet.address)),
+        gasLimit: 1000000,
+        gasPrice: 1000000,
+        reward: 100000,
+      }
+
     };
 
     // Prepare complete EIP712 Payload
@@ -248,19 +292,46 @@ contract('mTKN', (accounts) => {
     console.log('Spender', (await mTKN_instance.allowance(wallet.address, accounts[0])).toString());
     console.log('Relayer', (await mTKN_instance.allowance(wallet.address, accounts[1])).toString());
 
-    // Execute Meta Transaction
-    await mTKN_instance.signedApprove(
-        mApprovePayload.signer,
+    // Execute Constant verifier
+    const res = await mTKN_instance.verifyApprove(
         mApprovePayload.spender,
         mApprovePayload.amount,
-        mApprovePayload.nonce,
-        mApprovePayload.gasLimit,
-        mApprovePayload.gasPrice,
-        mApprovePayload.reward,
 
-        sig.v,
-        '0x' + sig.r,
-        '0x' + sig.s
+        [
+          mApprovePayload.actors.signer,
+          mApprovePayload.actors.relayer
+        ],
+
+        [
+          mApprovePayload.txparams.nonce,
+          mApprovePayload.txparams.gasLimit,
+          mApprovePayload.txparams.gasPrice,
+          mApprovePayload.txparams.reward
+        ],
+
+        sig.hex
+        , {from: accounts[1]});
+
+    expect(res).to.equal(true);
+
+    // Execute Meta Transaction
+    await mTKN_instance.signedApprove(
+        mApprovePayload.spender,
+        mApprovePayload.amount,
+
+        [
+          mApprovePayload.actors.signer,
+          mApprovePayload.actors.relayer
+        ],
+
+        [
+          mApprovePayload.txparams.nonce,
+          mApprovePayload.txparams.gasLimit,
+          mApprovePayload.txparams.gasPrice,
+          mApprovePayload.txparams.reward
+        ],
+
+        sig.hex
         , {from: accounts[1]});
 
     console.log('After Meta Tx Balances');
@@ -275,7 +346,7 @@ contract('mTKN', (accounts) => {
   });
 
   it('mTransferFrom', async () => {
-    const mTKN = artifacts.require("mTKN");
+    const mTKN = artifacts.require("mTKNExample");
     const mTKN_instance = await mTKN.deployed();
 
     const mTKN_signer = new mTKNSigner(mTKN_instance.address);
@@ -286,14 +357,22 @@ contract('mTKN', (accounts) => {
 
     // Prepare payload data
     const mTransferFromPayload = {
-      signer,
       sender: from,
       recipient: to,
       amount: 1234,
-      nonce: 0,
-      gasLimit: 1000000,
-      gasPrice: 1000000,
-      reward: 100000
+
+      actors: {
+        signer,
+        relayer: ZERO
+      },
+
+      txparams: {
+        nonce: parseInt(await mTKN_instance.nonceOf(wallet.address)),
+        gasLimit: 1000000,
+        gasPrice: 1000000,
+        reward: 100000,
+      }
+
     };
 
     // Prepare complete EIP712 Payload
@@ -311,20 +390,48 @@ contract('mTKN', (accounts) => {
     console.log('Recipient', (await mTKN_instance.balanceOf(accounts[1])).toString());
     console.log('Relayer', (await mTKN_instance.balanceOf(accounts[2])).toString());
 
-    // Execute Meta Transaction
-    await mTKN_instance.signedTransferFrom(
-        mTransferFromPayload.signer,
+    // Execute Constant verifier
+    const res = await mTKN_instance.verifyTransferFrom(
         mTransferFromPayload.sender,
         mTransferFromPayload.recipient,
         mTransferFromPayload.amount,
-        mTransferFromPayload.nonce,
-        mTransferFromPayload.gasLimit,
-        mTransferFromPayload.gasPrice,
-        mTransferFromPayload.reward,
 
-        sig.v,
-        '0x' + sig.r,
-        '0x' + sig.s
+        [
+          mTransferFromPayload.actors.signer,
+          mTransferFromPayload.actors.relayer
+        ],
+
+        [
+          mTransferFromPayload.txparams.nonce,
+          mTransferFromPayload.txparams.gasLimit,
+          mTransferFromPayload.txparams.gasPrice,
+          mTransferFromPayload.txparams.reward
+        ],
+
+        sig.hex
+        , {from: accounts[2]});
+
+    expect(res).to.equal(true);
+
+    // Execute Meta Transaction
+    await mTKN_instance.signedTransferFrom(
+        mTransferFromPayload.sender,
+        mTransferFromPayload.recipient,
+        mTransferFromPayload.amount,
+
+        [
+          mTransferFromPayload.actors.signer,
+          mTransferFromPayload.actors.relayer
+        ],
+
+        [
+          mTransferFromPayload.txparams.nonce,
+          mTransferFromPayload.txparams.gasLimit,
+          mTransferFromPayload.txparams.gasPrice,
+          mTransferFromPayload.txparams.reward
+        ],
+
+        sig.hex
         , {from: accounts[2]});
 
     console.log('After Meta Tx Balances');
