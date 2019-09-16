@@ -21,6 +21,10 @@ contract mTKNExample is mTKN, ERC20, ERC20Detailed, mTKNDomain, ERC165 {
 
     constructor (string memory name, string memory symbol, uint8 decimals) ERC20Detailed(name, symbol, decimals) mTKNDomain(name) ERC165() public {
         _registerInterface(MTKN_ERC165_SIGNATURE);
+        _registerInterface(0x36372b07); // ERC-20
+        _registerInterface(0x06fdde03); // ERC-20::name
+        _registerInterface(0x95d89b41); // ERC-20::symbol
+        _registerInterface(0x313ce567); // ERC-20::decimals
     }
 
     function _splitSignature(bytes memory signature) private pure returns (uint8 v, bytes32 r, bytes32 s) {

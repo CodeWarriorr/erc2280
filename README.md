@@ -132,7 +132,18 @@ This type describe the main type used to trigger a `transferFrom`.
 
 ```
 
-### mTKN methods
+### ERC-165 supported interfaces
+
+| Name | `bytes4` value |
+| :---: | :---: |
+| `ERC-165` | 0x01ffc9a7 |
+| `ERC-20` | 0x36372b07 |
+| `ERC-20::name`| 0x06fdde03 |
+| `ERC-20::symbol`| 0x95d89b41 |
+| `ERC-20::decimals`| 0x313ce567 |
+| `ERC-2280` | 0x6941bcc3 |
+
+### mTKN interface
 
 #### `nonceOf`
 
@@ -367,7 +378,6 @@ The specification was designed with simplicity in mind, and respect to current t
 The `mActors` and `mTxParams` type have been introduced to factorize arguments in two logical types. Multiple meta-transactions could get packed into the arrays in that way.
 
 The `signature` is a `bytes` argument, making it easier to use as most off-chain tools and implementations return hex strings or buffers as results of ECDSA.
-
 
 ## Important tools & implementation indications
 
