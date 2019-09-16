@@ -2,14 +2,25 @@ pragma solidity >=0.5.0 <0.6.0;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20Detailed.sol";
+import "@openzeppelin/contracts/introspection/ERC165.sol";
 import "./mTKN.sol";
 import "./mTKNDomain.sol";
 
-contract mTKNExample is mTKN, ERC20, ERC20Detailed, mTKNDomain {
+contract mTKNExample is mTKN, ERC20, ERC20Detailed, mTKNDomain, ERC165 {
 
     mapping (address => uint256) private nonces;
 
-    constructor (string memory name, string memory symbol, uint8 decimals) ERC20Detailed(name, symbol, decimals) mTKNDomain(name) public {
+    bytes4 constant public MTKN_ERC165_SIGNATURE = 0x6941bcc3;
+    /// bytes4(keccak256('nonceOf(address)')) ^
+    /// bytes4(keccak256('verifyTransfer(address,uint256,address[2],uint256[4],bytes)')) ^
+    /// bytes4(keccak256('signedTransfer(address,uint256,address[2],uint256[4],bytes)')) ^
+    /// bytes4(keccak256('verifyApprove(address,uint256,address[2],uint256[4],bytes)')) ^
+    /// bytes4(keccak256('signedApprove(address,uint256,address[2],uint256[4],bytes)')) ^
+    /// bytes4(keccak256('verifyTransferFrom(address,address,uint256,address[2],uint256[4],bytes)')) ^
+    /// bytes4(keccak256('signedTransferFrom(address,address,uint256,address[2],uint256[4],bytes)')) == 0x6941bcc3;
+
+    constructor (string memory name, string memory symbol, uint8 decimals) ERC20Detailed(name, symbol, decimals) mTKNDomain(name) ERC165() public {
+        _registerInterface(MTKN_ERC165_SIGNATURE);
     }
 
     function _splitSignature(bytes memory signature) private pure returns (uint8 v, bytes32 r, bytes32 s) {

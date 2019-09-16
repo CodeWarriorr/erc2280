@@ -157,7 +157,6 @@ contract mTKNDomain {
 
 
     function verify(mTransfer memory transfer, Signature memory signature) internal view returns (bool) {
-        // Note: we need to use `encodePacked` here instead of `encode`.
         bytes32 digest = keccak256(abi.encodePacked(
                 "\x19\x01",
                 DOMAIN_SEPARATOR,
@@ -167,7 +166,6 @@ contract mTKNDomain {
     }
 
     function verify(mApprove memory approve, Signature memory signature) internal view returns (bool) {
-        // Note: we need to use `encodePacked` here instead of `encode`.
         bytes32 digest = keccak256(abi.encodePacked(
                 "\x19\x01",
                 DOMAIN_SEPARATOR,
@@ -177,7 +175,6 @@ contract mTKNDomain {
     }
 
     function verify(mTransferFrom memory transfer_from, Signature memory signature) internal view returns (bool) {
-        // Note: we need to use `encodePacked` here instead of `encode`.
         bytes32 digest = keccak256(abi.encodePacked(
                 "\x19\x01",
                 DOMAIN_SEPARATOR,

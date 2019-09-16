@@ -2,7 +2,7 @@ pragma solidity >=0.5.0 <0.6.0;
 
 /// @title ERC- mTKN - ERC-20 native meta transactions
 /// @dev See
-contract mTKN {
+interface mTKN {
 
     /// @notice Return the current exepected nonce for given `account`.
     ///
@@ -41,10 +41,7 @@ contract mTKN {
     /// @param txparams Array of `uint256` that MUST contain `nonce` as `txparams[0]`, `gasLimit` as `txparams[1]`,
     ///                 `gasPrice` as `txparams[2]` and `reward` as `txparams[3]` in this precise order.
     ///
-    function verifyTransfer(
-        address recipient, uint256 amount,
-        address[2] memory actors, uint256[4] memory txparams, bytes memory signature
-    ) public view returns (bool);
+    function verifyTransfer(address recipient, uint256 amount, address[2] memory actors, uint256[4] memory txparams, bytes memory signature) external view returns (bool);
 
     /// @notice Transfers `amount` amount of tokens to address `recipient`, and fires the Transfer event.
     ///
@@ -74,10 +71,7 @@ contract mTKN {
     /// @param txparams Array of `uint256` that MUST contain `nonce` as `txparams[0]`, `gasLimit` as `txparams[1]`,
     ///                 `gasPrice` as `txparams[2]` and `reward` as `txparams[3]` in this precise order.
     ///
-    function signedTransfer(
-        address recipient, uint256 amount,
-        address[2] memory actors, uint256[4] memory txparams, bytes memory signature
-    ) public returns (bool);
+    function signedTransfer(address recipient, uint256 amount, address[2] memory actors, uint256[4] memory txparams, bytes memory signature) public returns (bool);
 
     /// @notice Verifies that an approval for `spender` of `amount` tokens on
     ///         `signer`'s balance is possible with the provided signature and with current contract state.
@@ -108,10 +102,7 @@ contract mTKN {
     /// @param txparams Array of `uint256` that MUST contain `nonce` as `txparams[0]`, `gasLimit` as `txparams[1]`,
     ///                 `gasPrice` as `txparams[2]` and `reward` as `txparams[3]` in this precise order.
     ///
-    function verifyApprove(
-        address spender, uint256 amount,
-        address[2] memory actors, uint256[4] memory txparams, bytes memory signature
-    ) public view returns (bool);
+    function verifyApprove(address spender, uint256 amount, address[2] memory actors, uint256[4] memory txparams, bytes memory signature) public view returns (bool);
 
     /// @notice Approves `amount` amount of tokens from `signer`'s balance to address `spender`, and
     ///         MUST fire the Approve event.
@@ -142,10 +133,7 @@ contract mTKN {
     /// @param txparams Array of `uint256` that MUST contain `nonce` as `txparams[0]`, `gasLimit` as `txparams[1]`,
     ///                 `gasPrice` as `txparams[2]` and `reward` as `txparams[3]` in this precise order.
     ///
-    function signedApprove(
-        address spender, uint256 amount,
-        address[2] memory actors, uint256[4] memory txparams, bytes memory signature
-    ) public returns (bool);
+    function signedApprove(address spender, uint256 amount, address[2] memory actors, uint256[4] memory txparams, bytes memory signature) public returns (bool);
 
     /// @notice Verifies that a transfer from `sender` to `recipient` of `amount` tokens and that
     ///         `signer` has at least `amount` allowance from `sender` is possible with the
@@ -182,10 +170,7 @@ contract mTKN {
     /// @param txparams Array of `uint256` that MUST contain `nonce` as `txparams[0]`, `gasLimit` as `txparams[1]`,
     ///                 `gasPrice` as `txparams[2]` and `reward` as `txparams[3]` in this precise order.
     ///
-    function verifyTransferFrom(
-        address sender, address recipient, uint256 amount,
-        address[2] memory actors, uint256[4] memory txparams, bytes memory signature
-    ) public view returns (bool);
+    function verifyTransferFrom(address sender, address recipient, uint256 amount, address[2] memory actors, uint256[4] memory txparams, bytes memory signature) public view returns (bool);
 
     /// @notice Triggers transfer from `sender` to `recipient` of `amount` tokens. `signer`
     ///         MUST have at least `amount` allowance from `sender`.
@@ -222,9 +207,6 @@ contract mTKN {
     /// @param txparams Array of `uint256` that MUST contain `nonce` as `txparams[0]`, `gasLimit` as `txparams[1]`,
     ///                 `gasPrice` as `txparams[2]` and `reward` as `txparams[3]` in this precise order.
     ///
-    function signedTransferFrom(
-        address sender, address recipient, uint256 amount,
-        address[2] memory actors, uint256[4] memory txparams, bytes memory signature
-    ) public returns (bool);
+    function signedTransferFrom(address sender, address recipient, uint256 amount, address[2] memory actors, uint256[4] memory txparams, bytes memory signature) public returns (bool);
 
 }
