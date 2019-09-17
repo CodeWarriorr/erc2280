@@ -4,6 +4,8 @@
 
 This repository contains the interface for the `mTKN` standard and the initial EIP Draft content.
 
+The discussions about the standards are on [Github](https://github.com/ethereum/EIPs/issues/2281) and on [Ethereum Magicians](https://ethereum-magicians.org/t/eip-2280-erc-20-extension-for-native-meta-transactions-support/3656).
+
 ---
 
 ## Simple Summary
