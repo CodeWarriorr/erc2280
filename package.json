@@ -14,7 +14,7 @@
   },
   "devDependencies": {},
   "scripts": {
-    "test": "truffle test"
+    "test:truffle": "truffle test"
   },
   "repository": {
     "type": "git",
