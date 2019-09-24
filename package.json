@@ -1,33 +1,51 @@
 {
-  "name": "mtkn",
-  "version": "1.0.0",
-  "description": "mTKN - erc-20 extension for native meta transaction support",
-  "main": "truffle-config.js",
-  "directories": {
-    "test": "test"
-  },
-  "dependencies": {
-    "@openzeppelin/contracts": "^2.3.0",
-    "@ticket721/e712": "0.1.6",
-    "ethers": "^4.0.36",
-    "truffle": "^5.0.35"
-  },
-  "devDependencies": {},
-  "scripts": {
-    "test:truffle": "truffle test",
-    "test": "npm run test:truffle"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/ticket721/mTKN.git"
-  },
-  "keywords": [
-    "erc20"
-  ],
-  "author": "Iulian Rotaru",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/ticket721/mTKN/issues"
-  },
-  "homepage": "https://github.com/ticket721/mTKN#readme"
+    "name": "mtkn",
+    "version": "1.0.0",
+    "description": "mTKN - erc-20 extension for native meta transaction support",
+    "main": "truffle-config.js",
+    "directories": {
+        "test": "test"
+    },
+    "dependencies": {
+        "@openzeppelin/contracts": "^2.3.0",
+        "@ticket721/e712": "0.1.6",
+        "ethers": "^4.0.36",
+        "truffle": "^5.0.35"
+    },
+    "devDependencies": {
+        "@commitlint/cli": "^7.5.2",
+        "@commitlint/config-conventional": "^7.5.0",
+        "conventional-changelog-cli": "^2.0.12",
+        "husky": "^1.3.1",
+        "@htmlacademy/editorconfig-cli": "^1.0.0"
+    },
+    "editorconfig-cli": [
+        "package.json",
+        "truffle-config.js",
+        "contracts/**/*.sol",
+        "migrations/**/*.js"
+    ],
+    "scripts": {
+        "test:truffle": "truffle test",
+        "test": "npm run test:truffle"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/ticket721/mTKN.git"
+    },
+    "keywords": [
+        "erc20"
+    ],
+    "author": "Iulian Rotaru",
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/ticket721/mTKN/issues"
+    },
+    "homepage": "https://github.com/ticket721/mTKN#readme",
+    "husky": {
+        "hooks": {
+            "pre-commit": "editorconfig-cli",
+            "commit-msg": "commitlint -E HUSKY_GIT_PARAMS"
+        }
+    }
 }
