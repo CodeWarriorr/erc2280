@@ -3,10 +3,10 @@ pragma solidity >=0.5.0 <0.6.0;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20Detailed.sol";
 import "@openzeppelin/contracts/introspection/ERC165.sol";
-import "./ERC2280.sol";
+import "./IERC2280.sol";
 import "./ERC2280Domain.sol";
 
-contract mTKN is ERC2280, ERC20, ERC20Detailed, ERC2280Domain, ERC165 {
+contract mTKN is IERC2280, ERC20, ERC20Detailed, ERC2280Domain, ERC165 {
 
     mapping (address => uint256) private nonces;
 

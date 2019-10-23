@@ -1,7 +1,13 @@
 pragma solidity >=0.5.0 <0.6.0;
 
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
 /// @title ERC-2280: ERC-20 extension for native meta transactions support
-interface ERC2280 {
+///
+/// "Why is this a contract and not an interface ?" - We cannot inherit from interfaces ... If we
+/// want to enforce ERC2280 implementations to also implement ERC20 interfaces, then this is the
+/// only solution (for the moment, I hope ...)
+contract IERC2280 is IERC20 {
 
     /// @notice Return the current expected nonce for given `account`.
     ///
