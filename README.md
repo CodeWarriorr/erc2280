@@ -460,13 +460,19 @@ The `signature` is a `bytes` argument, making it easier to use as most off-chain
 
 #### Specification Interface
 
-The following interface can be found [here](https://github.com/ticket721/erc2280/blob/master/contracts/ERC2280.sol).
+The following interface can be found [here](https://github.com/ticket721/erc2280/blob/master/contracts/IERC2280.sol).
 
 ```solidity
 pragma solidity >=0.5.0 <0.6.0;
 
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
 /// @title ERC-2280: ERC-20 extension for native meta transactions support
-interface ERC2280 {
+///
+/// "Why is this a contract and not an interface ?" - We cannot inherit from interfaces ... If we
+/// want to enforce ERC2280 implementations to also implement ERC20 interfaces, then this is the
+/// only solution (for the moment, I hope ...)
+contract IERC2280 is IERC20 {
 
     /// @notice Return the current expected nonce for given `account`.
     ///
@@ -722,7 +728,6 @@ interface ERC2280 {
     function signedTransferFrom(address[4] calldata actors, uint256[5] calldata txparams, bytes calldata signature) external returns (bool);
 
 }
-
 ```
 
 #### Splitting bytes signature into `r`, `s` & `v`
