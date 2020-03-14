@@ -13,17 +13,20 @@ jobs:
               uses: actions/setup-node@v1
               with:
                   node-version: 12.x
+            - name: Install Yarn Globally
+              run: npm install -g yarn@1.22.4
+
             - name: Install dependencies
-              run: npm install
+              run: yarn install
 
             - name: Run Editorconfig checks
-              run: npm run test:editorconfig
+              run: yarn test:editorconfig
 
             - name: Run SolHint checks
-              run: npm run test:lint
+              run: yarn test:lint
 
             - name: Run Truffle test suite
-              run: npm run test:coverage
+              run: yarn test:coverage
 
             - name: Coveralls
               uses: coverallsapp/github-action@master
