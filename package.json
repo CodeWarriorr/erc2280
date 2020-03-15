@@ -35,7 +35,7 @@
         "coverage:upload": "cat ./coverage/lcov.info | coveralls",
         "test": "yarn test:truffle",
         "@lerna/postinstall": "echo 'erc2280 has no postinstall'",
-        "@lerna/postclean": "echo 'erc2280 has no postclean'"
+        "@lerna/postclean": "rm -rf node_modules"
     },
     "repository": {
         "type": "git",
